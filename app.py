@@ -641,8 +641,30 @@ def render_response(response_blocks, msg_idx):
         renderer(content, msg_idx)
 
 
-def render_followup_actions(msg_idx):
-    """Render the follow-up action pills after a response."""
+def render_followup_actions(msg_idx, response_blocks):
+    """Render dynamic follow-up action pills based on LLM suggestions."""
+    # ── Collect follow_ups from all blocks ────────────────────────
+    ALL_ACTIONS = {
+        "flashcard":   ("🃏 Flashcards", "pill-flashcard"),
+        "quiz":        ("🧪 Quiz", "pill-quiz"),
+        "location":    ("📍 Locate", "pill-location"),
+        "explanation": ("📝 Explain", "pill-explain"),
+        "flowchart":   ("🔀 Flowchart", "pill-flowchart"),
+    }
+    suggested = []
+    for block in response_blocks:
+        suggested.extend(block.get("follow_ups", []))
+    # Deduplicate while preserving order
+    seen = set()
+    unique = []
+    for cat in suggested:
+        if cat in ALL_ACTIONS and cat not in seen:
+            seen.add(cat)
+            unique.append(cat)
+    # Fallback: show all if no suggestions
+    if not unique:
+        unique = list(ALL_ACTIONS.keys())
+
     st.markdown(
         f"""
         <div class="action-bar" id="actions-{msg_idx}">
@@ -653,15 +675,9 @@ def render_followup_actions(msg_idx):
         """,
         unsafe_allow_html=True,
     )
-    cols = st.columns(5)
-    actions = [
-        ("🃏 Flashcards", "flashcard", "pill-flashcard"),
-        ("🧪 Quiz", "quiz", "pill-quiz"),
-        ("📍 Locate", "location", "pill-location"),
-        ("📝 Explain", "explanation", "pill-explain"),
-        ("🔀 Flowchart", "flowchart", "pill-flowchart"),
-    ]
-    for col, (label, cat, _css) in zip(cols, actions):
+    cols = st.columns(len(unique))
+    for col, cat in zip(cols, unique):
+        label, _css = ALL_ACTIONS[cat]
         with col:
             if st.button(label, key=f"action_{cat}_{msg_idx}", use_container_width=True):
                 if st.session_state.demo_mode:
@@ -702,8 +718,9 @@ for idx, msg in enumerate(st.session_state.chat_history):
             st.markdown(msg["content"])
     else:
         with st.chat_message("assistant", avatar="🤖"):
-            render_response(msg.get("blocks", []), idx)
-            render_followup_actions(idx)
+            blocks = msg.get("blocks", [])
+            render_response(blocks, idx)
+            render_followup_actions(idx, blocks)
 
 # Chat input
 if prompt := st.chat_input("Ask anything — explanations, quizzes, flashcards…"):

@@ -54,7 +54,8 @@ Return a JSON array with exactly 1 object:
     "content": {
       "title": "<short heading>",
       "body": "<markdown explanation — use ### headings, **bold**, bullet lists, LaTeX with $…$ or $$…$$ as needed. Do NOT give direct answers to graded assignments.>"
-    }
+    },
+    "follow_ups": ["<2-4 category names from: explanation, flashcard, quiz, location, flowchart — pick the ones most useful as next steps>"]
   }
 ]""",
 
@@ -68,7 +69,8 @@ Return a JSON array with exactly 1 object:
         { "front": "<question or term>", "back": "<answer or definition, may use **bold** and markdown>" },
         ... (produce 4–8 cards)
       ]
-    }
+    },
+    "follow_ups": ["<2-4 category names from: explanation, flashcard, quiz, location, flowchart — pick the ones most useful as next steps>"]
   }
 ]""",
 
@@ -88,7 +90,8 @@ Return a JSON array with exactly 1 object:
         },
         ... (produce 3–5 questions)
       ]
-    }
+    },
+    "follow_ups": ["<2-4 category names from: explanation, flashcard, quiz, location, flowchart — pick the ones most useful as next steps>"]
   }
 ]""",
 
@@ -103,7 +106,8 @@ Return a JSON array with exactly 1 object:
       "page": "<page reference if available, else 'N/A'>",
       "excerpt": "<short verbatim quote from the material (≤ 30 words)>",
       "relevance": "<one sentence on why this location answers the query>"
-    }
+    },
+    "follow_ups": ["<2-4 category names from: explanation, flashcard, quiz, location, flowchart — pick the ones most useful as next steps>"]
   }
 ]""",
 
@@ -116,7 +120,8 @@ Return a JSON array with exactly 1 object:
       "title": "<descriptive title>",
       "mermaid": "<valid Mermaid graph TD syntax — use \\n for newlines, e.g. graph TD\\n    A[Step] --> B[Step]>",
       "description": "<1–2 sentence explanation of the flowchart>"
-    }
+    },
+    "follow_ups": ["<2-4 category names from: explanation, flashcard, quiz, location, flowchart — pick the ones most useful as next steps>"]
   }
 ]""",
 }
@@ -333,11 +338,17 @@ def ask_study_agent(
         if not isinstance(parsed, list):
             parsed = [parsed]
 
-        # ── Normalise to { category, content } ────────────────────
+        # ── Normalise to { category, content, follow_ups } ──────────
         normalised: list[dict] = []
         for obj in parsed:
-            # Already in correct format
+            # Extract follow_ups before anything else
+            follow_ups = obj.pop("follow_ups", [])
+            # Validate: must be list of known category strings
+            valid_cats = {c.value for c in Category}
+            follow_ups = [f for f in follow_ups if isinstance(f, str) and f in valid_cats]
+
             if "category" in obj and "content" in obj:
+                obj["follow_ups"] = follow_ups
                 normalised.append(obj)
             else:
                 # Flatten: pull "type" or stamp category, wrap rest in content
@@ -346,6 +357,7 @@ def ask_study_agent(
                 normalised.append({
                     "category": obj_cat,
                     "content": obj,
+                    "follow_ups": follow_ups,
                 })
 
         return normalised
