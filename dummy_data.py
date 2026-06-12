@@ -84,6 +84,7 @@ def get_explanation_response(query=""):
                     "toward zero in deep networks — ReLU helps mitigate this."
                 ),
             },
+            "follow_ups": ["flashcard", "quiz", "flowchart"],
         }
     ]
 
@@ -105,6 +106,7 @@ def get_location_response(query=""):
                 ),
                 "relevance": "Directly answers how neural network weights are updated during training.",
             },
+            "follow_ups": ["explanation", "flashcard", "flowchart"],
         }
     ]
 
@@ -159,6 +161,7 @@ def get_flashcard_response(query=""):
                     },
                 ],
             },
+            "follow_ups": ["quiz", "explanation"],
         }
     ]
 
@@ -216,6 +219,7 @@ def get_quiz_response(query=""):
                     },
                 ],
             },
+            "follow_ups": ["flashcard", "explanation", "location"],
         }
     ]
 
@@ -246,6 +250,7 @@ def get_flowchart_response(query=""):
                     "forward passes, loss computation, and backpropagation until convergence."
                 ),
             },
+            "follow_ups": ["explanation", "quiz", "location"],
         }
     ]
 
