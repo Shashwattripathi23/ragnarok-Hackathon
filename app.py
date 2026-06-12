@@ -16,7 +16,6 @@ from retriever import VectorStore
 # ── Page Config ────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Ragnarok Study Agent",
-    page_icon="R",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -741,10 +740,10 @@ def render_followup_actions(msg_idx, response_blocks):
 for idx, msg in enumerate(st.session_state.chat_history):
     role = msg["role"]
     if role == "user":
-        with st.chat_message("user", avatar="U"):
+        with st.chat_message("user"):
             st.markdown(msg["content"])
     else:
-        with st.chat_message("assistant", avatar="R"):
+        with st.chat_message("assistant"):
             blocks = msg.get("blocks", [])
             render_response(blocks, idx)
             render_followup_actions(idx, blocks)
