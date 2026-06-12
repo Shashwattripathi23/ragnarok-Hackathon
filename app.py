@@ -1,73 +1,141 @@
-import streamlit as st
-from document_parser import load_course_materials
-from agent import ask_study_agent # Assuming you have this implemented
+"""Calculemus Study Agent — Streamlit chat over a metadata-rich PDF index.
 
-# --- Page Configuration ---
+Pipeline: upload/point at PDFs -> parallel parse + image captioning + local
+embeddings -> ChromaDB -> intent-routed, tool-calling RAG agent with citations.
+"""
+import os
+from pathlib import Path
+
+import streamlit as st
+
+from study.config import IMAGES_DIR, INDEX_DIR, ROOT
+from study.indexer import index_files
+from study.retriever import Retriever
+from study.embeddings import warm_up
+from study.agent.orchestrator import answer
+
 st.set_page_config(page_title="Calculemus Study Agent", page_icon="🎓", layout="wide")
 
-st.title("🎓 Calculemus: Personalized Study Agent")
-st.markdown("Welcome to the Friday Mini-Hack! Upload your course materials in the sidebar, then start hacking.")
 
-# --- State Management ---
-if "documents" not in st.session_state:
-    st.session_state.documents = {}
+@st.cache_resource(show_spinner=False)
+def get_retriever() -> Retriever:
+    return Retriever()
+
+
+@st.cache_resource(show_spinner="Loading embedding model…")
+def _warm_embeddings() -> bool:
+    warm_up()
+    return True
+
+
+# --- State -----------------------------------------------------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "selected_context" not in st.session_state:
-    st.session_state.selected_context = ""
 
-# --- Sidebar UI: Information Retrieval ---
+_warm_embeddings()
+retriever = get_retriever()
+
+st.title("🎓 Calculemus: Personalized Study Agent")
+st.caption("Accurate, cited answers over your course PDFs — text, tables, and figures.")
+
+
+# --- Sidebar: build the knowledge base -------------------------------------
 with st.sidebar:
     st.header("📂 Knowledge Base")
-    
-    # Provide a file uploader that accepts multiple files
-    uploaded_files = st.file_uploader(
-        "Upload course files or drag a folder here", 
-        type=['pdf', 'md', 'txt', 'csv'], 
-        accept_multiple_files=True
+    st.metric("Chunks indexed", retriever.store.count())
+
+    folder = st.text_input("Course folder (PDFs)", value=str(ROOT / "CourseMaterial"))
+    uploaded = st.file_uploader(
+        "…or upload PDFs", type=["pdf"], accept_multiple_files=True
     )
-    
-    # Process button
-    if st.button("Process Uploaded Materials") and uploaded_files:
-        with st.spinner(f"Parsing {len(uploaded_files)} files..."):
-            # Pass the list of uploaded file objects to our updated parser
-            docs = load_course_materials(uploaded_files)
-            st.session_state.documents = docs
-        st.success(f"Successfully loaded {len(docs)} documents!")
-    
-    # Let the user pick which file to chat with
-    if st.session_state.documents:
-        selected_file = st.selectbox(
-            "Select a file to set as context:", 
-            options=["All Materials (Caution: Large!)"] + list(st.session_state.documents.keys())
-        )
-        
-        # [EXTENSION POINT]
-        # Currently, it just dumps the whole file text as context (limited to 8000 chars)... How can we optimize this?
-        if selected_file == "All Materials (Caution: Large!)":
-            st.session_state.selected_context = "\n".join(st.session_state.documents.values())[:8000] 
+    rebuild = st.checkbox("Rebuild from scratch", value=False,
+                          help="Wipe the index and re-parse everything.")
+
+    if st.button("⚙️ Build / Update Index", type="primary"):
+        paths = []
+        if folder and Path(folder).is_dir():
+            paths += [str(p) for p in Path(folder).rglob("*.pdf")]
+        if uploaded:
+            up_dir = INDEX_DIR / "uploads"
+            up_dir.mkdir(parents=True, exist_ok=True)
+            for uf in uploaded:
+                dest = up_dir / uf.name
+                dest.write_bytes(uf.getbuffer())
+                paths.append(str(dest))
+
+        if not paths:
+            st.warning("No PDFs found. Add a valid folder path or upload files.")
         else:
-            st.session_state.selected_context = st.session_state.documents[selected_file][:8000]
-            
-        st.caption(f"Context size: {len(st.session_state.selected_context)} characters")
+            bar = st.progress(0.0)
+            status = st.empty()
 
-# --- Main UI: Chat Interface ---
-# Display previous chat messages
-for message in st.session_state.chat_history:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+            def on_progress(stage: str, cur: int, tot: int):
+                frac = cur / tot if tot else 1.0
+                bar.progress(min(frac, 1.0))
+                status.write(f"**{stage}** · {cur}/{tot}")
 
-# Chat input box
-if prompt := st.chat_input("Ask a question, generate flashcards, or extract deadlines..."):
+            with st.spinner(f"Indexing {len(paths)} PDF(s)…"):
+                summary = index_files(paths, on_progress=on_progress, rebuild=rebuild)
+            get_retriever.clear()  # refresh retriever to see new data
+            bar.empty()
+            status.empty()
+            st.success(
+                f"Indexed {summary['indexed_files']} file(s) · "
+                f"{summary['chunks']} chunks ({summary['images']} images) · "
+                f"{summary['skipped']} unchanged."
+            )
+            st.rerun()
+
+    if st.button("🗑️ Clear chat"):
+        st.session_state.chat_history = []
+        st.rerun()
+
+
+# --- Helpers ----------------------------------------------------------------
+def render_sources(sources):
+    if not sources:
+        return
+    with st.expander(f"📎 Sources ({len(sources)})"):
+        for h in sources:
+            meta = h["metadata"]
+            st.markdown(f"**{h['citation']}** · _{meta.get('type', 'text')}_")
+            if meta.get("type") == "image" and meta.get("image_path") \
+                    and os.path.exists(meta["image_path"]):
+                st.image(meta["image_path"], width=240)
+            snippet = (h["text"] or "")[:300].strip()
+            if snippet:
+                st.caption(snippet + ("…" if len(h["text"]) > 300 else ""))
+            st.divider()
+
+
+# --- Chat -------------------------------------------------------------------
+for msg in st.session_state.chat_history:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+        if msg["role"] == "assistant":
+            render_sources(msg.get("sources", []))
+
+if prompt := st.chat_input("Ask about your course materials…"):
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-    
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    
-    with st.chat_message("assistant"):
-        with st.spinner("Agent is thinking..."):
-            # Make sure ask_study_agent is defined elsewhere!
-            response = ask_study_agent(prompt, context=st.session_state.selected_context)
-            st.markdown(response)
-    
-    st.session_state.chat_history.append({"role": "assistant", "content": response})
+
+    if retriever.store.count() == 0:
+        warning = "⚠️ The index is empty — build the knowledge base in the sidebar first."
+        with st.chat_message("assistant"):
+            st.markdown(warning)
+        st.session_state.chat_history.append({"role": "assistant", "content": warning, "sources": []})
+    else:
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking…"):
+                # History excludes the just-added user turn.
+                result = answer(prompt, history=st.session_state.chat_history[:-1],
+                                retriever=retriever)
+            st.markdown(result["answer"])
+            render_sources(result["sources"])
+            st.caption(f"intent: `{result['intent']}`")
+        st.session_state.chat_history.append({
+            "role": "assistant",
+            "content": result["answer"],
+            "sources": result["sources"],
+        })

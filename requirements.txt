@@ -1,5 +1,19 @@
-streamlit==1.32.0
-groq==0.4.2
-python-dotenv==1.0.1
-pypdf==4.1.0
-httpx==0.27.2
+# Core app
+streamlit>=1.32.0
+python-dotenv>=1.0.1
+
+# LLM (Groq is the only allowed API)
+groq>=0.11.0
+
+# PDF parsing + metadata
+pymupdf>=1.24.0
+pymupdf4llm>=0.0.17
+
+# Local embeddings (Groq has no embeddings endpoint)
+sentence-transformers>=2.7.0
+
+# Vector store with metadata filtering
+chromadb>=0.5.0
+
+# Images
+pillow>=10.0.0

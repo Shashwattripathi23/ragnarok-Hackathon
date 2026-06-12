@@ -1,0 +1,4 @@
+[server]
+# Raise the default 200 MB per-file upload cap (value is in MB).
+maxUploadSize = 5000
+maxMessageSize = 5000
