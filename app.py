@@ -10,6 +10,8 @@ from study_agent import (
     ask_study_agent,
     Category,
 )
+from document_parser import load_course_materials
+from retriever import VectorStore
 
 # ── Page Config ────────────────────────────────────────────────────
 st.set_page_config(
@@ -328,20 +330,40 @@ defaults = {
     "chat_history": [],       # list[dict] with role, content, response_type
     "pending_action": None,   # ("category", msg_index)
     "demo_mode": True,        # True = dummy data, False = live LLM
+    "vector_store": None,     # Holds the VectorStore instance
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
+if st.session_state.vector_store is None:
+    # Initialize the retriever model (loads weights on first run)
+    st.session_state.vector_store = VectorStore()
 
-def _get_context_text() -> str:
-    """Build the reference context string from selected corpus files."""
+def _get_context_text(query: str = "") -> str:
+    """Retrieve the most relevant context chunks for the query."""
     selected = st.session_state.get("selected_files", [])
-    docs = st.session_state.get("documents", {})
-    if not selected:
+    if not selected or not query or st.session_state.vector_store is None:
         return ""
-    parts = [docs[f] for f in selected if f in docs]
-    return "\n\n".join(parts)[:12000]  # cap at 12k chars
+        
+    # Ask retriever for top 5 chunks from the selected files
+    results = st.session_state.vector_store.search(
+        query=query, 
+        top_k=5, 
+        file_filters=selected
+    )
+    
+    if not results:
+        return ""
+        
+    # Format chunks with their metadata
+    parts = []
+    for chunk in results:
+        meta = chunk["metadata"]
+        header = f"--- Source: {meta['file']} ({meta.get('page', 'N/A')}) ---"
+        parts.append(f"{header}\n{chunk['text']}")
+        
+    return "\n\n".join(parts)
 
 # ── Hero header ────────────────────────────────────────────────────
 st.markdown(
@@ -395,19 +417,31 @@ with st.sidebar:
     st.markdown("</div>", unsafe_allow_html=True)
 
     if train_clicked:
-        # If real files were uploaded, store their names (parser logic placeholder)
-        if uploaded_files and not st.session_state.documents:
-            for f in uploaded_files:
-                st.session_state.documents[f.name] = f"[Content of {f.name} — parser placeholder]"
-
-        progress = st.progress(0, text="Parsing corpus…")
-        for i in range(100):
-            time.sleep(0.012)
-            progress.progress(i + 1, text=f"Processing… {i+1}%")
-        progress.empty()
-        st.session_state.trained = True
-        st.toast("Training complete!", icon="🎉")
-        st.rerun()
+        if uploaded_files:
+            progress = st.progress(0, text="Parsing and Chunking documents...")
+            
+            # 1. Parse and Chunk
+            chunks = load_course_materials(uploaded_files)
+            progress.progress(40, text="Generating Embeddings (this may take a moment)...")
+            
+            # 2. Index into VectorStore
+            st.session_state.vector_store.index(chunks)
+            progress.progress(90, text="Finalizing...")
+            
+            # 3. Update documents dict for UI display
+            docs_dict = {}
+            for chunk in chunks:
+                fname = chunk["metadata"]["file"]
+                if fname not in docs_dict:
+                    docs_dict[fname] = ""
+                docs_dict[fname] += chunk["text"] + "\n"
+                
+            st.session_state.documents = docs_dict
+            
+            progress.empty()
+            st.session_state.trained = True
+            st.toast("Training complete! Documents indexed.", icon="🎉")
+            st.rerun()
 
     if st.session_state.trained:
         n_files = len(st.session_state.documents)
@@ -691,7 +725,7 @@ def render_followup_actions(msg_idx, response_blocks):
                             break
                     followup = ask_study_agent(
                         last_query or "Continue from the previous topic",
-                        context=_get_context_text(),
+                        context=_get_context_text(last_query),
                         category=Category(cat),
                         request_type="follow_up",
                         chat_history=st.session_state.chat_history,
@@ -737,7 +771,7 @@ if prompt := st.chat_input("Ask anything — explanations, quizzes, flashcards�
     else:
         response_blocks = ask_study_agent(
             prompt,
-            context=_get_context_text(),
+            context=_get_context_text(prompt),
             category=None,            # auto-detect
             request_type=req_type,
             chat_history=st.session_state.chat_history if is_followup else None,
