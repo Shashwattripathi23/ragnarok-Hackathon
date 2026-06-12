@@ -6,6 +6,10 @@ from dummy_data import (
     get_dummy_response,
     get_initial_dummy_response,
 )
+from study_agent import (
+    ask_study_agent,
+    Category,
+)
 
 # ── Page Config ────────────────────────────────────────────────────
 st.set_page_config(
@@ -323,10 +327,21 @@ defaults = {
     "selected_files": [],
     "chat_history": [],       # list[dict] with role, content, response_type
     "pending_action": None,   # ("category", msg_index)
+    "demo_mode": True,        # True = dummy data, False = live LLM
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+
+def _get_context_text() -> str:
+    """Build the reference context string from selected corpus files."""
+    selected = st.session_state.get("selected_files", [])
+    docs = st.session_state.get("documents", {})
+    if not selected:
+        return ""
+    parts = [docs[f] for f in selected if f in docs]
+    return "\n\n".join(parts)[:12000]  # cap at 12k chars
 
 # ── Hero header ────────────────────────────────────────────────────
 st.markdown(
@@ -434,6 +449,22 @@ with st.sidebar:
                     )
     else:
         st.caption("Upload & train first to select context files.")
+
+    st.markdown("---")
+
+    # ── Mode toggle ────────────────────────────────────────────
+    st.markdown(
+        '<div class="sidebar-section"><h3>⚙️ Mode</h3></div>',
+        unsafe_allow_html=True,
+    )
+    st.session_state.demo_mode = st.toggle(
+        "🧪 Demo Mode (dummy data)",
+        value=st.session_state.demo_mode,
+    )
+    if st.session_state.demo_mode:
+        st.caption("Using canned responses — no API calls.")
+    else:
+        st.caption("Using live Groq LLM — requires API key.")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -633,7 +664,22 @@ def render_followup_actions(msg_idx):
     for col, (label, cat, _css) in zip(cols, actions):
         with col:
             if st.button(label, key=f"action_{cat}_{msg_idx}", use_container_width=True):
-                followup = get_dummy_response(cat)
+                if st.session_state.demo_mode:
+                    followup = get_dummy_response(cat)
+                else:
+                    # Find the last user query for context
+                    last_query = ""
+                    for m in reversed(st.session_state.chat_history):
+                        if m["role"] == "user":
+                            last_query = m["content"]
+                            break
+                    followup = ask_study_agent(
+                        last_query or "Continue from the previous topic",
+                        context=_get_context_text(),
+                        category=Category(cat),
+                        request_type="follow_up",
+                        chat_history=st.session_state.chat_history,
+                    )
                 st.session_state.chat_history.append(
                     {
                         "role": "assistant",
@@ -664,13 +710,32 @@ if prompt := st.chat_input("Ask anything — explanations, quizzes, flashcards�
     # Append user message
     st.session_state.chat_history.append({"role": "user", "content": prompt})
 
-    # Generate dummy response (explanation by default)
-    response_blocks = get_initial_dummy_response(prompt)
+    # Determine if this is a fresh query or a follow-up
+    user_msgs = [m for m in st.session_state.chat_history if m["role"] == "user"]
+    is_followup = len(user_msgs) > 1
+    req_type = "follow_up" if is_followup else "fresh"
+
+    if st.session_state.demo_mode:
+        response_blocks = get_initial_dummy_response(prompt)
+    else:
+        response_blocks = ask_study_agent(
+            prompt,
+            context=_get_context_text(),
+            category=None,            # auto-detect
+            request_type=req_type,
+            chat_history=st.session_state.chat_history if is_followup else None,
+        )
+
+    # Determine response type from first block
+    resp_type = "explanation"
+    if response_blocks:
+        resp_type = response_blocks[0].get("category", "explanation")
+
     st.session_state.chat_history.append(
         {
             "role": "assistant",
             "blocks": response_blocks,
-            "response_type": "explanation",
+            "response_type": resp_type,
         }
     )
     st.rerun()
