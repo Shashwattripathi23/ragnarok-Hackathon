@@ -321,7 +321,7 @@ defaults = {
     "selected_files": [],
     "chat_history": [],       # list[dict] with role, content, response_type
     "pending_action": None,   # ("category", msg_index)
-    "demo_mode": True,        # True = dummy data, False = live LLM
+    "demo_mode": False,        # True = dummy data, False = live LLM
     "vector_store": None,     # Holds the VectorStore instance
 }
 for k, v in defaults.items():
@@ -382,11 +382,11 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    # Quick-load dummy files button
-    if st.button("Load Demo Corpus", use_container_width=True):
-        st.session_state.documents = dict(DUMMY_FILES)
-        st.session_state.trained = False
-        st.toast("Demo corpus loaded!")
+    # # Quick-load dummy files button
+    # if st.button("Load Demo Corpus", use_container_width=True):
+    #     st.session_state.documents = dict(DUMMY_FILES)
+    #     st.session_state.trained = False
+    #     st.toast("Demo corpus loaded!")
 
     if uploaded_files:
         st.caption(f"{len(uploaded_files)} file(s) staged")
@@ -483,14 +483,14 @@ with st.sidebar:
         '<div class="sidebar-section"><h3>Mode</h3></div>',
         unsafe_allow_html=True,
     )
-    st.session_state.demo_mode = st.toggle(
-        "Demo Mode (dummy data)",
-        value=st.session_state.demo_mode,
-    )
-    if st.session_state.demo_mode:
-        st.caption("Using canned responses — no API calls.")
-    else:
-        st.caption("Using live Groq LLM — requires API key.")
+    # st.session_state.demo_mode = st.toggle(
+    #     "Demo Mode (dummy data)",
+    #     value=st.session_state.demo_mode,
+    # )
+    # if st.session_state.demo_mode:
+    #     st.caption("Using canned responses — no API calls.")
+    # else:
+    #     st.caption("Using live Groq LLM — requires API key.")
 
 
 # ══════════════════════════════════════════════════════════════════
