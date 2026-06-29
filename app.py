@@ -15,8 +15,7 @@ from retriever import VectorStore
 
 # ── Page Config ────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Calculemus Study Agent",
-    page_icon="🎓",
+    page_title="Ragnarok Study Agent",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -27,31 +26,26 @@ st.markdown(
 <style>
 /* ── CSS Variables ──────────────────────────────────────────── */
 :root {
-    --bg-primary: #0f0f1a;
-    --bg-card: #1a1a2e;
-    --bg-card-hover: #22223a;
-    --accent-purple: #7c3aed;
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-green: #10b981;
-    --accent-amber: #f59e0b;
-    --accent-rose: #f43f5e;
-    --accent-indigo: #6366f1;
-    --text-primary: #e2e8f0;
-    --text-secondary: #94a3b8;
-    --border-subtle: rgba(148, 163, 184, 0.12);
-    --glass-bg: rgba(26, 26, 46, 0.75);
-    --glass-border: rgba(124, 58, 237, 0.2);
+    --bg-primary: #000;
+    --bg-card: #1e1e1e;
+    --bg-card-hover: #2c2c2c;
+    --accent: #e0e0e0;
+    --accent-dark: #757575;
+    --text-primary: #ffffff;
+    --text-secondary: #aaaaaa;
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(30, 30, 30, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.15);
     --radius: 14px;
-    --shadow-glow: 0 0 25px rgba(124, 58, 237, 0.15);
+    --shadow-glow: 0 0 15px rgba(255, 255, 255, 0.05);
 }
 
 /* ── Global ─────────────────────────────────────────────────── */
 .stApp {
-    background: linear-gradient(145deg, #0f0f1a 0%, #1a1033 50%, #0f0f1a 100%) !important;
+    background: #000 !important;
 }
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #13132b 0%, #1a1033 100%) !important;
+    background: #000 !important;
     border-right: 1px solid var(--glass-border) !important;
 }
 
@@ -62,9 +56,7 @@ section[data-testid="stSidebar"] {
     margin-bottom: 0.5rem;
 }
 .hero-header h1 {
-    background: linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
     font-size: 2.2rem;
     font-weight: 800;
     letter-spacing: -0.5px;
@@ -89,15 +81,15 @@ section[data-testid="stSidebar"] {
     font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: var(--accent-purple);
+    color: var(--accent);
     margin: 0 0 0.7rem;
 }
 
 /* ── Train button ───────────────────────────────────────────── */
 .train-btn button {
-    background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue)) !important;
-    color: white !important;
-    border: none !important;
+    background: var(--bg-card-hover) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--glass-border) !important;
     border-radius: 10px !important;
     font-weight: 700 !important;
     letter-spacing: 0.5px;
@@ -145,27 +137,27 @@ section[data-testid="stSidebar"] {
 }
 
 /* ── Explanation ────────────────────────────────────────────── */
-.badge-explanation { background: rgba(99,102,241,0.18); color: #818cf8; }
-.explanation-card { border-left: 3px solid var(--accent-indigo); }
+.badge-explanation { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.explanation-card { border-left: 3px solid var(--accent-dark); }
 
 /* ── Location ───────────────────────────────────────────────── */
-.badge-location { background: rgba(16,185,129,0.18); color: #34d399; }
-.location-card  { border-left: 3px solid var(--accent-green); }
+.badge-location { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.location-card  { border-left: 3px solid var(--accent-dark); }
 .location-meta  {
     display: flex; flex-wrap: wrap; gap: 0.6rem;
     margin-bottom: 0.8rem;
 }
 .location-tag {
-    background: rgba(16,185,129,0.12);
-    color: #34d399;
+    background: rgba(255,255,255,0.5);
+    color: var(--text-secondary);
     padding: 3px 10px;
     border-radius: 8px;
     font-size: 0.78rem;
     font-weight: 600;
 }
 .location-excerpt {
-    background: rgba(16,185,129,0.06);
-    border-left: 3px solid #34d399;
+    background: rgba(255,255,255,0.02);
+    border-left: 3px solid var(--accent-dark);
     padding: 0.8rem 1rem;
     border-radius: 0 8px 8px 0;
     color: var(--text-primary);
@@ -174,7 +166,7 @@ section[data-testid="stSidebar"] {
 }
 
 /* ── Flashcards ─────────────────────────────────────────────── */
-.badge-flashcard { background: rgba(245,158,11,0.18); color: #fbbf24; }
+.badge-flashcard { background: rgba(255,255,255,0.1); color: var(--text-primary); }
 .flashcard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -182,8 +174,8 @@ section[data-testid="stSidebar"] {
     margin-top: 0.4rem;
 }
 .flashcard {
-    background: linear-gradient(145deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
-    border: 1px solid rgba(245,158,11,0.2);
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 1rem 1.1rem;
     transition: transform 0.18s, box-shadow 0.18s;
@@ -191,12 +183,12 @@ section[data-testid="stSidebar"] {
 }
 .flashcard:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(245,158,11,0.12);
+    box-shadow: var(--shadow-glow);
 }
 .flashcard-front {
     font-weight: 700;
     font-size: 0.92rem;
-    color: #fbbf24;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
 .flashcard-num {
@@ -206,11 +198,11 @@ section[data-testid="stSidebar"] {
 }
 
 /* ── Quiz ───────────────────────────────────────────────────── */
-.badge-quiz { background: rgba(244,63,94,0.18); color: #fb7185; }
-.quiz-card  { border-left: 3px solid var(--accent-rose); }
+.badge-quiz { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.quiz-card  { border-left: 3px solid var(--accent-dark); }
 .quiz-question-block {
-    background: rgba(244,63,94,0.05);
-    border: 1px solid rgba(244,63,94,0.15);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--glass-border);
     border-radius: 10px;
     padding: 1rem 1.1rem;
     margin-bottom: 0.7rem;
@@ -222,27 +214,27 @@ section[data-testid="stSidebar"] {
     font-size: 0.95rem;
 }
 .quiz-result-correct {
-    background: rgba(16,185,129,0.12);
-    border: 1px solid rgba(16,185,129,0.3);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--glass-border);
     border-radius: 8px;
     padding: 0.6rem 0.8rem;
     margin-top: 0.4rem;
-    color: #34d399;
+    color: var(--text-primary);
     font-size: 0.85rem;
 }
 .quiz-result-wrong {
-    background: rgba(244,63,94,0.12);
-    border: 1px solid rgba(244,63,94,0.3);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
     border-radius: 8px;
     padding: 0.6rem 0.8rem;
     margin-top: 0.4rem;
-    color: #fb7185;
+    color: var(--text-primary);
     font-size: 0.85rem;
 }
 
 /* ── Flowchart ──────────────────────────────────────────────── */
-.badge-flowchart { background: rgba(6,182,212,0.18); color: #22d3ee; }
-.flowchart-card   { border-left: 3px solid var(--accent-cyan); }
+.badge-flowchart { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.flowchart-card   { border-left: 3px solid var(--accent-dark); }
 .flowchart-desc {
     color: var(--text-secondary);
     font-size: 0.88rem;
@@ -276,23 +268,23 @@ section[data-testid="stSidebar"] {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-.pill-flashcard  { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #fbbf24; }
-.pill-quiz       { background: rgba(244,63,94,0.1);  border-color: rgba(244,63,94,0.3);  color: #fb7185; }
-.pill-location   { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #34d399; }
-.pill-explain    { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); color: #818cf8; }
-.pill-flowchart  { background: rgba(6,182,212,0.1);  border-color: rgba(6,182,212,0.3);  color: #22d3ee; }
+.pill-flashcard  { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-quiz       { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-location   { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-explain    { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-flowchart  { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
 
 /* ── Corpus stats chip ──────────────────────────────────────── */
 .corpus-stat {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(124,58,237,0.1);
-    border: 1px solid rgba(124,58,237,0.2);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
     border-radius: 8px;
     padding: 4px 10px;
     font-size: 0.78rem;
-    color: #a78bfa;
+    color: var(--text-secondary);
     font-weight: 600;
     margin-right: 0.4rem;
     margin-bottom: 0.3rem;
@@ -303,19 +295,52 @@ section[data-testid="stSidebar"] {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    background: rgba(59,130,246,0.1);
-    border: 1px solid rgba(59,130,246,0.2);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     padding: 3px 9px;
     font-size: 0.75rem;
-    color: #60a5fa;
+    color: var(--text-secondary);
     font-weight: 500;
     margin: 2px;
 }
 
-/* ── Misc ───────────────────────────────────────────────────── */
+/* ── Better Chat Dialogs ────────────────────────────────────── */
 div[data-testid="stChatMessage"] {
-    background: transparent !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(12px);
+}
+div[data-testid="chatAvatarIcon-user"] {
+    background-color: var(--accent-dark) !important;
+}
+div[data-testid="chatAvatarIcon-assistant"] {
+    background-color: var(--accent) !important;
+}
+
+/* ── Typing Indicator ───────────────────────────────────────── */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.5rem 0;
+}
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
 }
 </style>
 """,
@@ -329,7 +354,7 @@ defaults = {
     "selected_files": [],
     "chat_history": [],       # list[dict] with role, content, response_type
     "pending_action": None,   # ("category", msg_index)
-    "demo_mode": True,        # True = dummy data, False = live LLM
+    "demo_mode": False,        # True = dummy data, False = live LLM
     "vector_store": None,     # Holds the VectorStore instance
 }
 for k, v in defaults.items():
@@ -341,35 +366,43 @@ if st.session_state.vector_store is None:
     st.session_state.vector_store = VectorStore()
 
 def _get_context_text(query: str = "") -> str:
-    """Retrieve the most relevant context chunks for the query."""
+    """Retrieve the most relevant context chunks for the query.
+
+    Uses the VectorStore's similarity threshold (default 0.30) to exclude
+    irrelevant chunks, ensuring only grounded context reaches the LLM.
+    """
     selected = st.session_state.get("selected_files", [])
     if not selected or not query or st.session_state.vector_store is None:
         return ""
-        
-    # Ask retriever for top 5 chunks from the selected files
+
+    # Ask retriever for top 7 chunks from the selected files.
+    # The retriever automatically filters out chunks with cosine similarity < 0.30,
+    # preventing irrelevant noise from poisoning the LLM context.
     results = st.session_state.vector_store.search(
-        query=query, 
-        top_k=5, 
-        file_filters=selected
+        query=query,
+        top_k=7,
+        file_filters=selected,
     )
-    
+
     if not results:
         return ""
-        
-    # Format chunks with their metadata
+
+    # Format chunks with their metadata and relevance score for traceability
     parts = []
     for chunk in results:
         meta = chunk["metadata"]
-        header = f"--- Source: {meta['file']} ({meta.get('page', 'N/A')}) ---"
+        score = chunk.get("score", None)
+        score_str = f", relevance={score:.2f}" if score is not None else ""
+        header = f"--- Source: {meta['file']} ({meta.get('page', 'N/A')}{score_str}) ---"
         parts.append(f"{header}\n{chunk['text']}")
-        
+
     return "\n\n".join(parts)
 
 # ── Hero header ────────────────────────────────────────────────────
 st.markdown(
     '<div class="hero-header">'
-    "<h1>🎓 Calculemus</h1>"
-    "<p>Your AI-powered study companion — upload, train, and master any subject</p>"
+    "<h1>Ragnarok</h1>"
+    "<p>upload, train, and master any subject</p>"
     "</div>",
     unsafe_allow_html=True,
 )
@@ -380,7 +413,7 @@ st.markdown(
 with st.sidebar:
     # ── Upload section ─────────────────────────────────────────
     st.markdown(
-        '<div class="sidebar-section"><h3>📤 Upload Corpus</h3></div>',
+        '<div class="sidebar-section"><h3>Upload Corpus</h3></div>',
         unsafe_allow_html=True,
     )
     uploaded_files = st.file_uploader(
@@ -390,12 +423,6 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    # Quick-load dummy files button
-    if st.button("📦 Load Demo Corpus", use_container_width=True):
-        st.session_state.documents = dict(DUMMY_FILES)
-        st.session_state.trained = False
-        st.toast("Demo corpus loaded!", icon="📦")
-
     if uploaded_files:
         st.caption(f"{len(uploaded_files)} file(s) staged")
 
@@ -403,14 +430,14 @@ with st.sidebar:
 
     # ── Train button ───────────────────────────────────────────
     st.markdown(
-        '<div class="sidebar-section"><h3>🚀 Train Parser</h3></div>',
+        '<div class="sidebar-section"><h3>Train Parser</h3></div>',
         unsafe_allow_html=True,
     )
 
     corpus_ready = bool(st.session_state.documents) or bool(uploaded_files)
     st.markdown('<div class="train-btn">', unsafe_allow_html=True)
     train_clicked = st.button(
-        "⚡ Train on Corpus" if not st.session_state.trained else "✅ Re-Train",
+        "Train on Corpus" if not st.session_state.trained else "Re-Train",
         use_container_width=True,
         disabled=not corpus_ready,
     )
@@ -440,15 +467,15 @@ with st.sidebar:
             
             progress.empty()
             st.session_state.trained = True
-            st.toast("Training complete! Documents indexed.", icon="🎉")
+            st.toast("Training complete! Documents indexed.")
             st.rerun()
 
     if st.session_state.trained:
         n_files = len(st.session_state.documents)
         n_chars = sum(len(v) for v in st.session_state.documents.values())
         chips = (
-            f'<span class="corpus-stat">📄 {n_files} files</span>'
-            f'<span class="corpus-stat">📝 {n_chars:,} chars</span>'
+            f'<span class="corpus-stat">{n_files} files</span>'
+            f'<span class="corpus-stat">{n_chars:,} chars</span>'
         )
         st.markdown(chips, unsafe_allow_html=True)
 
@@ -456,7 +483,7 @@ with st.sidebar:
 
     # ── File context selector ──────────────────────────────────
     st.markdown(
-        '<div class="sidebar-section"><h3>🎯 Select Context</h3></div>',
+        '<div class="sidebar-section"><h3>Select Context</h3></div>',
         unsafe_allow_html=True,
     )
     if st.session_state.documents:
@@ -472,33 +499,17 @@ with st.sidebar:
         if selected:
             ctx_size = sum(len(st.session_state.documents[f]) for f in selected)
             st.markdown(
-                f'<span class="corpus-stat">🎯 Context: {ctx_size:,} chars</span>',
+                f'<span class="corpus-stat">Context: {ctx_size:,} chars</span>',
                 unsafe_allow_html=True,
             )
             with st.expander("Selected files", expanded=False):
                 for fn in selected:
                     st.markdown(
-                        f'<span class="file-chip">📄 {fn}</span>',
+                        f'<span class="file-chip">{fn}</span>',
                         unsafe_allow_html=True,
                     )
     else:
         st.caption("Upload & train first to select context files.")
-
-    st.markdown("---")
-
-    # ── Mode toggle ────────────────────────────────────────────
-    st.markdown(
-        '<div class="sidebar-section"><h3>⚙️ Mode</h3></div>',
-        unsafe_allow_html=True,
-    )
-    st.session_state.demo_mode = st.toggle(
-        "🧪 Demo Mode (dummy data)",
-        value=st.session_state.demo_mode,
-    )
-    if st.session_state.demo_mode:
-        st.caption("Using canned responses — no API calls.")
-    else:
-        st.caption("Using live Groq LLM — requires API key.")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -512,7 +523,7 @@ def render_explanation(content):
     st.markdown(
         f'<div class="response-card explanation-card">'
         f'<div class="card-header">'
-        f'<span class="card-badge badge-explanation">📝 Explanation</span>'
+        f'<span class="card-badge badge-explanation">Explanation</span>'
         f"<span>{title}</span>"
         f"</div></div>",
         unsafe_allow_html=True,
@@ -530,17 +541,17 @@ def render_location(content):
     st.markdown(
         f'<div class="response-card location-card">'
         f'<div class="card-header">'
-        f'<span class="card-badge badge-location">📍 Location</span>'
+        f'<span class="card-badge badge-location">Location</span>'
         f"<span>Found in Corpus</span>"
         f"</div>"
         f'<div class="location-meta">'
-        f'<span class="location-tag">📄 {file_name}</span>'
-        f'<span class="location-tag">📑 {section}</span>'
-        f'<span class="location-tag">📖 {page}</span>'
+        f'<span class="location-tag">{file_name}</span>'
+        f'<span class="location-tag">{section}</span>'
+        f'<span class="location-tag">{page}</span>'
         f"</div>"
         f'<div class="location-excerpt">"{excerpt}"</div>'
         f'<p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.6rem;">'
-        f"💡 {relevance}</p>"
+        f"{relevance}</p>"
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -552,7 +563,7 @@ def render_flashcards(content):
     st.markdown(
         '<div class="response-card" style="border-left:3px solid var(--accent-amber);">'
         '<div class="card-header">'
-        '<span class="card-badge badge-flashcard">🃏 Flashcards</span>'
+        '<span class="card-badge badge-flashcard">Flashcards</span>'
         f"<span>{len(cards)} Cards</span>"
         "</div></div>",
         unsafe_allow_html=True,
@@ -567,7 +578,7 @@ def render_flashcards(content):
                 f"</div>",
                 unsafe_allow_html=True,
             )
-            with st.expander("🔄 Flip to see answer"):
+            with st.expander("Flip to see answer"):
                 st.markdown(card["back"])
 
 
@@ -578,7 +589,7 @@ def render_quiz(content, msg_idx):
     st.markdown(
         f'<div class="response-card quiz-card">'
         f'<div class="card-header">'
-        f'<span class="card-badge badge-quiz">🧪 Quiz</span>'
+        f'<span class="card-badge badge-quiz">Quiz</span>'
         f"<span>{title}</span>"
         f"</div></div>",
         unsafe_allow_html=True,
@@ -619,7 +630,7 @@ def render_quiz(content, msg_idx):
                 )
 
     if not st.session_state[quiz_key]["submitted"]:
-        if st.button("✅ Check Answers", key=f"{quiz_key}_submit"):
+        if st.button("Check Answers", key=f"{quiz_key}_submit"):
             st.session_state[quiz_key]["submitted"] = True
             st.rerun()
 
@@ -633,7 +644,7 @@ def render_flowchart(content):
     st.markdown(
         f'<div class="response-card flowchart-card">'
         f'<div class="card-header">'
-        f'<span class="card-badge badge-flowchart">🔀 Flowchart</span>'
+        f'<span class="card-badge badge-flowchart">Flowchart</span>'
         f"<span>{title}</span>"
         f"</div></div>",
         unsafe_allow_html=True,
@@ -651,7 +662,7 @@ def render_flowchart(content):
 
     if description:
         st.markdown(
-            f'<div class="flowchart-desc">💡 {description}</div>',
+            f'<div class="flowchart-desc">{description}</div>',
             unsafe_allow_html=True,
         )
 
@@ -677,25 +688,22 @@ def render_response(response_blocks, msg_idx):
 
 def render_followup_actions(msg_idx, response_blocks):
     """Render dynamic follow-up action pills based on LLM suggestions."""
-    # ── Collect follow_ups from all blocks ────────────────────────
     ALL_ACTIONS = {
-        "flashcard":   ("🃏 Flashcards", "pill-flashcard"),
-        "quiz":        ("🧪 Quiz", "pill-quiz"),
-        "location":    ("📍 Locate", "pill-location"),
-        "explanation": ("📝 Explain", "pill-explain"),
-        "flowchart":   ("🔀 Flowchart", "pill-flowchart"),
+        "flashcard":   ("Flashcards", "pill-flashcard"),
+        "quiz":        ("Quiz", "pill-quiz"),
+        "location":    ("Locate", "pill-location"),
+        "explanation": ("Explain", "pill-explain"),
+        "flowchart":   ("Flowchart", "pill-flowchart"),
     }
     suggested = []
     for block in response_blocks:
         suggested.extend(block.get("follow_ups", []))
-    # Deduplicate while preserving order
     seen = set()
     unique = []
     for cat in suggested:
         if cat in ALL_ACTIONS and cat not in seen:
             seen.add(cat)
             unique.append(cat)
-    # Fallback: show all if no suggestions
     if not unique:
         unique = list(ALL_ACTIONS.keys())
 
@@ -717,7 +725,6 @@ def render_followup_actions(msg_idx, response_blocks):
                 if st.session_state.demo_mode:
                     followup = get_dummy_response(cat)
                 else:
-                    # Find the last user query for context
                     last_query = ""
                     for m in reversed(st.session_state.chat_history):
                         if m["role"] == "user":
@@ -748,45 +755,62 @@ def render_followup_actions(msg_idx, response_blocks):
 for idx, msg in enumerate(st.session_state.chat_history):
     role = msg["role"]
     if role == "user":
-        with st.chat_message("user", avatar="🧑‍🎓"):
+        with st.chat_message("user"):
             st.markdown(msg["content"])
     else:
-        with st.chat_message("assistant", avatar="🤖"):
+        with st.chat_message("assistant"):
             blocks = msg.get("blocks", [])
             render_response(blocks, idx)
             render_followup_actions(idx, blocks)
 
 # Chat input
-if prompt := st.chat_input("Ask anything — explanations, quizzes, flashcards…"):
-    # Append user message
+if prompt := st.chat_input("Ask anything : explanations, quizzes, flashcards…"):
+    # Append user message to history
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+
+    # Instantly render the user's message
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
     # Determine if this is a fresh query or a follow-up
     user_msgs = [m for m in st.session_state.chat_history if m["role"] == "user"]
     is_followup = len(user_msgs) > 1
     req_type = "follow_up" if is_followup else "fresh"
 
-    if st.session_state.demo_mode:
-        response_blocks = get_initial_dummy_response(prompt)
-    else:
-        response_blocks = ask_study_agent(
-            prompt,
-            context=_get_context_text(prompt),
-            category=None,            # auto-detect
-            request_type=req_type,
-            chat_history=st.session_state.chat_history if is_followup else None,
+    # Render Assistant placeholder with Typing Animation
+    with st.chat_message("assistant"):
+        loading_placeholder = st.empty()
+        loading_placeholder.markdown(
+            '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>',
+            unsafe_allow_html=True
         )
 
-    # Determine response type from first block
-    resp_type = "explanation"
-    if response_blocks:
-        resp_type = response_blocks[0].get("category", "explanation")
+        if st.session_state.demo_mode:
+            response_blocks = get_initial_dummy_response(prompt)
+            time.sleep(1) # Visual delay for the animation
+        else:
+            response_blocks = ask_study_agent(
+                prompt,
+                context=_get_context_text(prompt),
+                category=None,            # auto-detect
+                request_type=req_type,
+                chat_history=st.session_state.chat_history if is_followup else None,
+            )
+        
+        # Clear the animation
+        loading_placeholder.empty()
 
-    st.session_state.chat_history.append(
-        {
-            "role": "assistant",
-            "blocks": response_blocks,
-            "response_type": resp_type,
-        }
-    )
-    st.rerun()
+        # Determine response type from first block
+        resp_type = "explanation"
+        if response_blocks:
+            resp_type = response_blocks[0].get("category", "explanation")
+
+        # Save to state and refresh to trigger native render function cleanly
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "blocks": response_blocks,
+                "response_type": resp_type,
+            }
+        )
+        st.rerun()
