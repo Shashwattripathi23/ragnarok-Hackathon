@@ -6,10 +6,10 @@ Welcome to the Friday Mini-Hack! This repository contains the **Starter Baseline
 
 * `app.py` - The Streamlit frontend. Handles the chat interface and document loading UI.
 * `agent.py` - The brain. Connects to the **Groq API** and handles the AI prompts.
-* `document_parser.py` - The extractor. Reads through the `CourseMaterial/` folder and pulls text from PDFs and Markdown files.
+* `document_parser.py` - The extractor. 
 * `requirements.txt` - All the necessary Python packages.
 * `.env.example` - Template for your API keys (Security first!).
-* `CourseMaterial/` - The dataset of Machine Learning lectures, notes, and exercises you will be hacking on.
+
 
 ## 🛠️ Quick Start Guide
 
