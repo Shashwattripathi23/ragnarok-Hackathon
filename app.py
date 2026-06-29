@@ -26,7 +26,7 @@ st.markdown(
 <style>
 /* ── CSS Variables ──────────────────────────────────────────── */
 :root {
-    --bg-primary: #121212;
+    --bg-primary: #000;
     --bg-card: #1e1e1e;
     --bg-card-hover: #2c2c2c;
     --accent: #e0e0e0;
@@ -42,10 +42,10 @@ st.markdown(
 
 /* ── Global ─────────────────────────────────────────────────── */
 .stApp {
-    background: #121212 !important;
+    background: #000 !important;
 }
 section[data-testid="stSidebar"] {
-    background: #181818 !important;
+    background: #000 !important;
     border-right: 1px solid var(--glass-border) !important;
 }
 
@@ -148,7 +148,7 @@ section[data-testid="stSidebar"] {
     margin-bottom: 0.8rem;
 }
 .location-tag {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.5);
     color: var(--text-secondary);
     padding: 3px 10px;
     border-radius: 8px;
@@ -268,11 +268,11 @@ section[data-testid="stSidebar"] {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-.pill-flashcard  { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
-.pill-quiz       { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
-.pill-location   { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
-.pill-explain    { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
-.pill-flowchart  { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-flashcard  { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-quiz       { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-location   { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-explain    { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
+.pill-flowchart  { background: rgba(0,0,0,0.05); border-color: rgba(255,255,255,0.15); color: var(--text-primary); }
 
 /* ── Corpus stats chip ──────────────────────────────────────── */
 .corpus-stat {
@@ -305,9 +305,42 @@ section[data-testid="stSidebar"] {
     margin: 2px;
 }
 
-/* ── Misc ───────────────────────────────────────────────────── */
+/* ── Better Chat Dialogs ────────────────────────────────────── */
 div[data-testid="stChatMessage"] {
-    background: transparent !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(12px);
+}
+div[data-testid="chatAvatarIcon-user"] {
+    background-color: var(--accent-dark) !important;
+}
+div[data-testid="chatAvatarIcon-assistant"] {
+    background-color: var(--accent) !important;
+}
+
+/* ── Typing Indicator ───────────────────────────────────────── */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.5rem 0;
+}
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
 }
 </style>
 """,
@@ -333,35 +366,43 @@ if st.session_state.vector_store is None:
     st.session_state.vector_store = VectorStore()
 
 def _get_context_text(query: str = "") -> str:
-    """Retrieve the most relevant context chunks for the query."""
+    """Retrieve the most relevant context chunks for the query.
+
+    Uses the VectorStore's similarity threshold (default 0.30) to exclude
+    irrelevant chunks, ensuring only grounded context reaches the LLM.
+    """
     selected = st.session_state.get("selected_files", [])
     if not selected or not query or st.session_state.vector_store is None:
         return ""
-        
-    # Ask retriever for top 5 chunks from the selected files
+
+    # Ask retriever for top 7 chunks from the selected files.
+    # The retriever automatically filters out chunks with cosine similarity < 0.30,
+    # preventing irrelevant noise from poisoning the LLM context.
     results = st.session_state.vector_store.search(
-        query=query, 
-        top_k=5, 
-        file_filters=selected
+        query=query,
+        top_k=7,
+        file_filters=selected,
     )
-    
+
     if not results:
         return ""
-        
-    # Format chunks with their metadata
+
+    # Format chunks with their metadata and relevance score for traceability
     parts = []
     for chunk in results:
         meta = chunk["metadata"]
-        header = f"--- Source: {meta['file']} ({meta.get('page', 'N/A')}) ---"
+        score = chunk.get("score", None)
+        score_str = f", relevance={score:.2f}" if score is not None else ""
+        header = f"--- Source: {meta['file']} ({meta.get('page', 'N/A')}{score_str}) ---"
         parts.append(f"{header}\n{chunk['text']}")
-        
+
     return "\n\n".join(parts)
 
 # ── Hero header ────────────────────────────────────────────────────
 st.markdown(
     '<div class="hero-header">'
     "<h1>Ragnarok</h1>"
-    "<p>Your AI-powered study companion — upload, train, and master any subject</p>"
+    "<p>upload, train, and master any subject</p>"
     "</div>",
     unsafe_allow_html=True,
 )
@@ -381,12 +422,6 @@ with st.sidebar:
         accept_multiple_files=True,
         label_visibility="collapsed",
     )
-
-    # # Quick-load dummy files button
-    # if st.button("Load Demo Corpus", use_container_width=True):
-    #     st.session_state.documents = dict(DUMMY_FILES)
-    #     st.session_state.trained = False
-    #     st.toast("Demo corpus loaded!")
 
     if uploaded_files:
         st.caption(f"{len(uploaded_files)} file(s) staged")
@@ -475,22 +510,6 @@ with st.sidebar:
                     )
     else:
         st.caption("Upload & train first to select context files.")
-
-    st.markdown("---")
-
-    # ── Mode toggle ────────────────────────────────────────────
-    st.markdown(
-        '<div class="sidebar-section"><h3>Mode</h3></div>',
-        unsafe_allow_html=True,
-    )
-    # st.session_state.demo_mode = st.toggle(
-    #     "Demo Mode (dummy data)",
-    #     value=st.session_state.demo_mode,
-    # )
-    # if st.session_state.demo_mode:
-    #     st.caption("Using canned responses — no API calls.")
-    # else:
-    #     st.caption("Using live Groq LLM — requires API key.")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -669,7 +688,6 @@ def render_response(response_blocks, msg_idx):
 
 def render_followup_actions(msg_idx, response_blocks):
     """Render dynamic follow-up action pills based on LLM suggestions."""
-    # ── Collect follow_ups from all blocks ────────────────────────
     ALL_ACTIONS = {
         "flashcard":   ("Flashcards", "pill-flashcard"),
         "quiz":        ("Quiz", "pill-quiz"),
@@ -680,14 +698,12 @@ def render_followup_actions(msg_idx, response_blocks):
     suggested = []
     for block in response_blocks:
         suggested.extend(block.get("follow_ups", []))
-    # Deduplicate while preserving order
     seen = set()
     unique = []
     for cat in suggested:
         if cat in ALL_ACTIONS and cat not in seen:
             seen.add(cat)
             unique.append(cat)
-    # Fallback: show all if no suggestions
     if not unique:
         unique = list(ALL_ACTIONS.keys())
 
@@ -709,7 +725,6 @@ def render_followup_actions(msg_idx, response_blocks):
                 if st.session_state.demo_mode:
                     followup = get_dummy_response(cat)
                 else:
-                    # Find the last user query for context
                     last_query = ""
                     for m in reversed(st.session_state.chat_history):
                         if m["role"] == "user":
@@ -749,36 +764,53 @@ for idx, msg in enumerate(st.session_state.chat_history):
             render_followup_actions(idx, blocks)
 
 # Chat input
-if prompt := st.chat_input("Ask anything — explanations, quizzes, flashcards…"):
-    # Append user message
+if prompt := st.chat_input("Ask anything : explanations, quizzes, flashcards…"):
+    # Append user message to history
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+
+    # Instantly render the user's message
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
     # Determine if this is a fresh query or a follow-up
     user_msgs = [m for m in st.session_state.chat_history if m["role"] == "user"]
     is_followup = len(user_msgs) > 1
     req_type = "follow_up" if is_followup else "fresh"
 
-    if st.session_state.demo_mode:
-        response_blocks = get_initial_dummy_response(prompt)
-    else:
-        response_blocks = ask_study_agent(
-            prompt,
-            context=_get_context_text(prompt),
-            category=None,            # auto-detect
-            request_type=req_type,
-            chat_history=st.session_state.chat_history if is_followup else None,
+    # Render Assistant placeholder with Typing Animation
+    with st.chat_message("assistant"):
+        loading_placeholder = st.empty()
+        loading_placeholder.markdown(
+            '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>',
+            unsafe_allow_html=True
         )
 
-    # Determine response type from first block
-    resp_type = "explanation"
-    if response_blocks:
-        resp_type = response_blocks[0].get("category", "explanation")
+        if st.session_state.demo_mode:
+            response_blocks = get_initial_dummy_response(prompt)
+            time.sleep(1) # Visual delay for the animation
+        else:
+            response_blocks = ask_study_agent(
+                prompt,
+                context=_get_context_text(prompt),
+                category=None,            # auto-detect
+                request_type=req_type,
+                chat_history=st.session_state.chat_history if is_followup else None,
+            )
+        
+        # Clear the animation
+        loading_placeholder.empty()
 
-    st.session_state.chat_history.append(
-        {
-            "role": "assistant",
-            "blocks": response_blocks,
-            "response_type": resp_type,
-        }
-    )
-    st.rerun()
+        # Determine response type from first block
+        resp_type = "explanation"
+        if response_blocks:
+            resp_type = response_blocks[0].get("category", "explanation")
+
+        # Save to state and refresh to trigger native render function cleanly
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "blocks": response_blocks,
+                "response_type": resp_type,
+            }
+        )
+        st.rerun()

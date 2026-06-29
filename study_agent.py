@@ -161,7 +161,7 @@ def _build_system_prompt(
 
     # ─ Persona with hard anti-hallucination constraint ─────────────
     parts.append(
-        "You are Calculemus, an AI Study Assistant. "
+        "You are Ragnarok, a RAG based AI Study Assistant. "
         "Your ONLY knowledge source for answering questions is the COURSE MATERIAL CONTEXT provided below. "
         "You MUST NOT use any outside knowledge, training data, or assumptions beyond what is explicitly stated in that context. "
         "If the context does not contain enough information to answer the query fully, you MUST say so clearly — do NOT fabricate facts. "
